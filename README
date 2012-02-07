@@ -1,0 +1,22 @@
+
+Perl6 Net Pack
+
+A collection of modules for Perl 6 aiming providing network-related
+infrastructure.  This will tend towards the same direction as the
+Perl5 "Frame" module sets, and roll in a lot of the functionality
+of Perl5 modules such as Net::Address::*, but refactoring to
+fully utilize the polymorphic REPR/parameterized Role/multidispatch
+feature sets of Perl6.
+
+The only thing here right now is a grammar for safe parsing of textual
+representation of IPv4 addresses.
+
+Right now I'm tracking Rakudo star and once niecza has a few more
+items on its tick list I will attempt to keep these modules compatible
+with niecza monthly binary releases as well.  Standard tuit disclaimers
+apply.
+
+I'm trying for "distribution quality" as far as packaging/docs/API
+and so am happy to take any advice towards that end.
+
+Everything here is released under Perl Artistic License, natch.
