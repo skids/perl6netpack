@@ -106,6 +106,7 @@ our class Actions {
     method octet ($/)            { make $0.Int }
     method octet_ ($/)           { make $/<octet>.ast }
     method prefix_length ($/)    { make $0.Int }
+    method stray_prefix_length ($/)    { make $/<prefix_length>.ast }
     method dotted($/)            { make $/<octet>>>.ast; }
     method subnet_mask($/)       { make $/<octet>>>.ast; }
     method acenet_mask($/)       { make $/<octet>>>.ast; }
@@ -118,10 +119,49 @@ our class Actions {
     method cidrsta ($/)          { make $/<dotted prefix_length>>>.ast }
 }
 
+# This is probative and not formally offered as API yet.  Perl6 specs should
+# probably define a "proper" place to put rules used to reconstruct
+# normative representations.  But of course, reconstruct to what exactly
+# and from what exactly?  A common pattern/need would be to emit a
+# "cleaned up" reconstruction from a previous Match, but users may elect
+# not to keep the Match around and just pull out the AST, so reconstructing
+# from an AST would seem useful.  The form of the AST relies on the :actions
+# class used, so if a user changed the :actions they would also have to
+# be responsible for changing this.
+#
+# One way to gain this level of flexibility might be to leverage MMD.
+# A base class would provide methods named after action methods with
+# a signature of ( Match $m ).  A subclass could then add methods of
+# different signatures to handle AST contents instead of Match objects.
+# MMD would dispatch to the appropriate versions depending on what the
+# (corrolary to .parse) was fed.  The only icky part with this strategy
+# is it falls apart if there is a good reason for the AST to be
+# containing Match objects from other sources.  A "Just don't do that"
+# public policy might be OK though.
+#
+# Anyway, for now we are only concerned with using a proper set of
+# separators, so we just define those; they do not care what they
+# are being fed.
+our class Emit {
+    method dot (|c) { '.' }
+    method cidr_separator (|c) { '/' }
+    method subnet_separator (|c) { ' ' }
+    method acenet_separator (|c) { ' ' }
+    method cidrsta_separator (|c) { '/' }
+    method substa_separator (|c) { ' ' }
+    method acesta_separator (|c) { ' ' }
+    method filter_separator (|c) { ' ' }
+}
+
 our grammar Safe {
 
     method parse($target, :$rule?, :$actions = Actions, *%opt) {
         nextwith($target, :rule($rule), :actions($actions), %opt);
+    }
+
+    method emit($target, :$rule = 'TOP', :$emit = Emit, *%opt) {
+        # for now just call designated rule.
+        $emit."$rule"($target);
     }
 
 =begin pod
@@ -303,10 +343,22 @@ These rules are lookahead assertions and have no associated actions.
         <before ( \d**1..2 )
 	 <?{ $0.Int < 33 or fail "Prefix length out of range";}>
          >
-    }
+    };
 
     token prefix_length {
         <!.hex_after> <!.leading_zero> <prefix_length_oob> ( \d**1..2 )
+    };
+
+=begin pod
+    =head3 token stray_prefix_length
+
+    As per the C<prefix_length> token, but allows a leading C<cidr_separator>
+    token.
+
+=end pod
+
+    token stray_prefix_length {
+        <.cidr_separator>? <prefix_length>
     };
 
 =begin pod
